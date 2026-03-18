@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+*.venv
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/terraform.exe
+terraform/.terraform.lock.hcl
+*.egg-info/
+
+# Exe / Bin
+*.exe
+
+# Claude Code worktrees
+.claude/
+CLAUDE.md
+*.coverage
+
+# Data files (too large for git)
+data/raw/
+data/*.parquet
+
+# Virtual environments
+.venv/
+venv/
