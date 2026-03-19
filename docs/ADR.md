@@ -208,3 +208,58 @@ engineering functions.
 the absence of these patterns. The ADR demonstrates awareness of what 
 is missing and why it was excluded, which is more valuable than 
 implementing it poorly under time pressure.
+
+---
+
+### ADR-011: Data Engineering and Serving as Separate Bounded Contexts
+
+**Status:** Accepted
+
+**Context:** The system has two distinct workflows: (1) cleaning and merging raw data (Data Engineering), and (2) building features and serving predictions (ML Serving). Both could live in the same Python package, or be separated.
+
+**Decision:** Separate them. Data Engineering lives in `data_engineering/` outside the installable Python package. ML Serving lives in `src/energy_forecast/`. The Parquet file in `data/` is the contract between them.
+
+**Reasoning:**
+- Different lifecycles: the pipeline runs once daily (or once for initial setup), the API runs continuously. Different deployment targets (batch job vs. long-running service).
+- Different dependencies: DuckDB is only needed by the pipeline, not by the API. Separating them keeps the Docker image for the API smaller.
+- Independent testability: pipeline tests verify data quality, API tests verify prediction correctness. Neither depends on the other.
+- Clear ownership boundary: if the data source changes (new API, new format), only the pipeline changes. The serving code never touches raw data.
+
+**Trade-off:** Shared constants (TARGET, DATA_PATH) create a coupling via `config.py`. Acceptable for a single-repo project. In a multi-repo setup, these would move to a shared config package.
+
+---
+
+### ADR-012: Protocol Interface for DataStore
+
+**Status:** Accepted
+
+**Context:** The serving API needs historical load data to compute lag features. This data could come from a local file (development), S3 (cloud), or a database (production). Need to decide how to abstract this.
+
+**Decision:** Define a `DataStore` Protocol with a single `get_history()` method. Implement `FileDataStore` for local development and `S3DataStore` for cloud deployment. The serving code depends only on the Protocol, never on a specific implementation.
+
+**Reasoning:**
+- The Protocol pattern (PEP 544) enables structural subtyping: any class with a matching `get_history()` signature satisfies the contract, without explicit inheritance. This is idiomatic Python.
+- Swapping the data source requires changing one line in `main.py` (which store to instantiate), not touching any serving or feature code.
+- Testability: tests inject a mock or a FileDataStore with small fixtures. No S3 credentials needed in CI.
+- Matches the DDD principle: domain logic (features, prediction) is decoupled from infrastructure (where data lives).
+
+**Alternatives considered:**
+- Abstract Base Class (ABC): more explicit, but requires `class MyStore(DataStore)` inheritance. Protocol is lighter and more Pythonic.
+- No abstraction (hardcode file reads): works initially but forces a rewrite when the data source changes. The Protocol costs 10 lines of code and prevents that.
+
+---
+
+### ADR-013: Feature Engineering in Python, Not SQL
+
+**Status:** Accepted
+
+**Context:** The DuckDB ingestion pipeline already uses SQL for data cleaning and merging. Feature engineering (calendar, weather, lag, holiday features) could also be implemented in SQL within the same pipeline.
+
+**Decision:** Feature engineering stays in Python (`src/energy_forecast/features/`). The DuckDB pipeline only produces clean, merged raw data. Features are built at serving time by the Python feature pipeline.
+
+**Reasoning:**
+- Training-serving skew prevention: the exact same Python functions that were validated in the training notebook are used in the serving API. If features were rebuilt in SQL, there would be two implementations of the same logic with no guarantee of consistency. This is the highest-risk bug in production ML systems (Google Rules of ML #32, #37).
+- Testability: 39 small tests verify the Python feature functions with synthetic data. SQL-based features would require a running DuckDB instance for every test.
+- The feature pipeline is the core intellectual property of the project (ADR-007). It must be explicit, readable, and testable. SQL is powerful for data transformation but harder to unit test and version.
+
+**Consequence:** The DuckDB pipeline and the feature pipeline have a clear boundary: DuckDB outputs clean rows with raw columns, Python adds engineered features on top. No feature logic crosses this boundary.
