@@ -82,6 +82,8 @@ class IngestionPipeline:
             min_expected_columns: Minimum column count for output validation.
         """
         self.con = duckdb.connect(db_path)
+        # NOTE: "self.con" is a library standard of DuckDB, but can seem un-obvious
+        # to readers unfamiliar with DuckDB. For the future, clearer naming would be: "self.connection"
         self.min_expected_rows = min_expected_rows
         self.min_expected_columns = min_expected_columns
         logger.info("DuckDB connection initialized: %s", db_path)
@@ -150,7 +152,7 @@ class IngestionPipeline:
             CREATE TABLE raw_energy AS
             SELECT * FROM read_csv('{energy_path}', auto_detect=true)
         """)
-        # auto_detect=true is acceptable for static Kaggle CSVs.
+        # NOTE: auto_detect=true is acceptable for static Kaggle CSVs.
         # For production pipelines with daily data delivery,
         # replace with explicit column types to prevent
         # silent type inference failures.
@@ -379,7 +381,7 @@ class IngestionPipeline:
             self.con.execute("DESCRIBE training_data").fetchall()
         )
 
-        # One note to the following assert-statements:
+        # NOTE: One note to the following assert-statements:
         # Those should be used with caution: It is sufficient to use them here to validate internal invariants,
         # but should never be used to validate external / user facing data or in security critical environments
         # as the python -O flag deactivates them.
