@@ -150,6 +150,10 @@ class IngestionPipeline:
             CREATE TABLE raw_energy AS
             SELECT * FROM read_csv('{energy_path}', auto_detect=true)
         """)
+        # auto_detect=true is acceptable for static Kaggle CSVs.
+        # For production pipelines with daily data delivery,
+        # replace with explicit column types to prevent
+        # silent type inference failures.
 
         self.con.execute(f"""
             CREATE TABLE raw_weather AS
