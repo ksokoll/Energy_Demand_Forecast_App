@@ -379,6 +379,11 @@ class IngestionPipeline:
             self.con.execute("DESCRIBE training_data").fetchall()
         )
 
+        # One note to the following assert-statements:
+        # Those should be used with caution: It is sufficient to use them here to validate internal invariants,
+        # but should never be used to validate external / user facing data or in security critical environments
+        # as the python -O flag deactivates them.
+        
         assert row_count > self.min_expected_rows, (
             f"Row count validation failed: expected > {self.min_expected_rows}, "
             f"got {row_count}. Possible upstream data issue."
