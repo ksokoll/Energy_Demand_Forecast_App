@@ -26,6 +26,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Known improvement: The two following constants should be part of a separate data engineering config.py
+# instead of magically defining them here.
 ENERGY_FILENAME = "energy_dataset.csv"
 WEATHER_FILENAME = "weather_features.csv"
 
