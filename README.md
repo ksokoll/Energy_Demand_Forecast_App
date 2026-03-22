@@ -209,7 +209,7 @@ A dedicated contract test verifies that the feature pipeline output matches the 
 
 **No permanent cloud deployment.** Deployed to AWS EC2 via Terraform, verified with live requests, then torn down. The infrastructure code remains reproducible.
 
-## No Return Objects for Pipeline Orchestration
+**No Return Objects for Pipeline Orchestration**
 The ingestion pipeline uses the pattern success = no exception. 
 A PipelineResult dataclass (rows_written, columns, rows_dropped, 
 duration_seconds) would bring consistency across projects and enable 
